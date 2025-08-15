@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Palette, RotateCcw, Sparkles, MessageSquare, Copy, Clipboard, Edit3 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Palette, RotateCcw, Sparkles, MessageSquare, Copy, Clipboard, Edit3, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Annotation {
@@ -31,7 +32,6 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
 }) => {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedRelevance, setSelectedRelevance] = useState<'high' | 'medium' | 'neutral' | 'low'>('high');
-  const [isSelecting, setIsSelecting] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [pendingAnnotation, setPendingAnnotation] = useState<Omit<Annotation, 'comment'> | null>(null);
   const [commentText, setCommentText] = useState('');
@@ -47,8 +47,6 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   ] as const;
 
   const handleTextSelection = useCallback(() => {
-    if (!isSelecting) return;
-    
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
@@ -86,7 +84,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
 
     // Clear selection
     selection.removeAllRanges();
-  }, [annotations, selectedRelevance, isSelecting, onAnnotationsChange]);
+  }, [annotations, selectedRelevance, onAnnotationsChange]);
 
   const handleCommentSubmit = () => {
     if (!pendingAnnotation) return;
@@ -175,7 +173,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
             background-color: hsl(var(--annotation-${annotation.relevanceLevel}-bg));
             border-left: 3px solid hsl(var(--annotation-${annotation.relevanceLevel}));
           "
-          title="${relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}: '${annotation.text}'${annotation.comment ? `\nComment: ${annotation.comment}` : ''}"
+          title="${annotation.comment || relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}"
         >
           ${annotation.text}
         </span>`
@@ -226,15 +224,6 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
 
         <div className="flex gap-2 ml-auto">
           <Button
-            variant={isSelecting ? "default" : "outline"}
-            size="sm"
-            onClick={() => setIsSelecting(!isSelecting)}
-            className="h-8"
-          >
-            {isSelecting ? "Stop Selecting" : "Start Selecting"}
-          </Button>
-          
-          <Button
             variant="outline"
             size="sm"
             onClick={clearAnnotations}
@@ -268,9 +257,38 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
               </Button>
               {annotations.length > 0 && (
                 <>
-                  <Badge variant="secondary" className="text-xs">
-                    {annotations.length} annotation{annotations.length !== 1 ? 's' : ''}
-                  </Badge>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Badge variant="secondary" className="text-xs cursor-pointer hover:bg-secondary/80">
+                        <Eye className="w-3 h-3 mr-1" />
+                        {annotations.length} annotation{annotations.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="end">
+                      <div className="p-4">
+                        <h4 className="font-semibold text-sm mb-3">All Annotations</h4>
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                          {annotations.map((annotation) => (
+                            <div key={annotation.id} className="border rounded-lg p-3 bg-background/50">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`text-annotation-${annotation.relevanceLevel} font-medium text-xs`}>
+                                  {relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.emoji} {relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.label}
+                                </span>
+                              </div>
+                              <div className="text-xs text-foreground mb-2 font-medium">
+                                "{annotation.text}"
+                              </div>
+                              {annotation.comment && (
+                                <div className="text-xs text-muted-foreground italic">
+                                  💬 {annotation.comment}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     onClick={onRefinePrompt}
                     size="sm"
@@ -344,11 +362,9 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
             )}
           </div>
 
-          {isSelecting && (
-            <p className="text-xs text-muted-foreground mt-2">
-              💡 Select text to annotate with relevance levels. Comments help provide context.
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground mt-2">
+            💡 Select text to annotate with relevance levels. Comments help provide context.
+          </p>
         </div>
       </Card>
 
@@ -361,12 +377,14 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             {relevanceLevels.map((level) => {
-              const count = annotations.filter(a => a.relevanceLevel === level.key).length;
-              const percentage = annotations.length > 0 ? Math.round((count / annotations.length) * 100) : 0;
+              const levelAnnotations = annotations.filter(a => a.relevanceLevel === level.key);
+              const totalAnnotatedLength = levelAnnotations.reduce((sum, annotation) => sum + (annotation.endIndex - annotation.startIndex), 0);
+              const totalContentLength = content.length;
+              const percentage = totalContentLength > 0 ? Math.round((totalAnnotatedLength / totalContentLength) * 100) : 0;
               return (
                 <div key={level.key} className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50 border">
                   <div className={`w-6 h-6 rounded-full bg-annotation-${level.color} shadow-lg flex items-center justify-center text-white text-xs font-bold`}>
-                    {count}
+                    {levelAnnotations.length}
                   </div>
                   <div className="text-center">
                     <div className="font-medium text-foreground">{level.emoji} {level.label}</div>
