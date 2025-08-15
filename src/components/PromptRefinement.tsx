@@ -161,9 +161,15 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
         </div>
         
         <div className="bg-muted rounded-lg p-4 max-h-96 overflow-y-auto">
-          <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
-            {refinedPrompt}
-          </pre>
+          {annotations.length > 0 ? (
+            <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
+              {refinedPrompt}
+            </pre>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">
+              Your refined prompt will appear here after you highlight text and add annotations above.
+            </p>
+          )}
         </div>
       </Card>
 
@@ -219,7 +225,7 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
         
         <div className="bg-muted rounded-lg p-4 max-h-32 overflow-y-auto">
           <p className="text-sm text-muted-foreground">
-            {originalPrompt}
+            {originalPrompt || "No original prompt provided"}
           </p>
         </div>
       </Card>
