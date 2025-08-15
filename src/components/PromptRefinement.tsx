@@ -208,27 +208,6 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
         </div>
       </Card>
 
-      {/* Original Comparison */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Original Prompt</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => copyToClipboard(originalPrompt, "Original prompt")}
-            className="h-7"
-          >
-            <Copy className="w-3 h-3 mr-1" />
-            Copy
-          </Button>
-        </div>
-        
-        <div className="bg-muted rounded-lg p-4 max-h-32 overflow-y-auto">
-          <p className="text-sm text-muted-foreground">
-            {originalPrompt || "No original prompt provided"}
-          </p>
-        </div>
-      </Card>
     </div>
   );
 };

@@ -61,9 +61,16 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
     const rect = range.getBoundingClientRect();
     const containerRect = contentRef.current.getBoundingClientRect();
     
-    // Calculate text indices
-    const containerText = contentRef.current.textContent || '';
-    const startIndex = containerText.indexOf(selectedText);
+    // Calculate text indices using range position within container
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = contentRef.current.innerHTML;
+    const containerText = tempDiv.textContent || '';
+    
+    // Get the actual position of the selection within the text content
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(contentRef.current);
+    preCaretRange.setEnd(range.startContainer, range.startOffset);
+    const startIndex = (preCaretRange.toString()).length;
     const endIndex = startIndex + selectedText.length;
 
     if (startIndex === -1) return;
