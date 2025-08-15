@@ -29,10 +29,10 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const relevanceLevels = [
-    { key: 'high', label: 'High', color: 'annotation-high', description: 'Most relevant' },
-    { key: 'medium', label: 'Medium', color: 'annotation-medium', description: 'Somewhat relevant' },
-    { key: 'neutral', label: 'Neutral', color: 'annotation-neutral', description: 'Neutral' },
-    { key: 'low', label: 'Low', color: 'annotation-low', description: 'Least relevant' }
+    { key: 'high', label: 'High', color: 'high', description: 'Most relevant', emoji: '🔥' },
+    { key: 'medium', label: 'Medium', color: 'medium', description: 'Somewhat relevant', emoji: '⚡' },
+    { key: 'neutral', label: 'Neutral', color: 'neutral', description: 'Neutral', emoji: '⚪' },
+    { key: 'low', label: 'Low', color: 'low', description: 'Least relevant', emoji: '❄️' }
   ] as const;
 
   const handleTextSelection = useCallback(() => {
@@ -96,14 +96,27 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
         );
       }
 
-      // Add annotated text
+      // Add annotated text with native heatmap styling
       result.push(
         <span
           key={annotation.id}
-          className={`px-1 py-0.5 rounded-sm bg-annotation-${annotation.relevanceLevel} bg-opacity-30 border-l-2 border-annotation-${annotation.relevanceLevel} transition-all duration-200 hover:bg-opacity-50`}
+          className={`
+            px-2 py-1 mx-0.5 rounded-md cursor-pointer
+            bg-annotation-${annotation.relevanceLevel}-bg 
+            hover:bg-annotation-${annotation.relevanceLevel}-hover
+            border border-annotation-${annotation.relevanceLevel}/20
+            shadow-sm
+            transition-all duration-300 ease-out
+            hover:shadow-md hover:scale-[1.02]
+            relative
+            before:absolute before:inset-0 before:rounded-md 
+            before:bg-gradient-to-r before:from-annotation-${annotation.relevanceLevel}/5 before:to-annotation-${annotation.relevanceLevel}/10
+            before:transition-opacity before:duration-300
+            hover:before:opacity-75
+          `}
           title={`${relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}: "${annotation.text}"`}
         >
-          {annotation.text}
+          <span className="relative z-10">{annotation.text}</span>
         </span>
       );
 
@@ -125,10 +138,12 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   return (
     <div className="space-y-6">
       {/* Annotation Controls */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-card rounded-lg border">
-        <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Relevance Level:</span>
+      <div className="flex flex-wrap items-center gap-4 p-5 bg-card rounded-xl border shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-annotation-high to-annotation-low flex items-center justify-center">
+            <Palette className="w-3 h-3 text-white" />
+          </div>
+          <span className="text-sm font-semibold text-foreground">Heatmap Level:</span>
         </div>
         
         <div className="flex gap-2">
@@ -138,12 +153,15 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
               variant={selectedRelevance === level.key ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedRelevance(level.key as any)}
-              className={`h-8 text-xs ${
-                selectedRelevance === level.key 
-                  ? `bg-annotation-${level.color} text-white border-annotation-${level.color}` 
-                  : ''
-              }`}
+              className={`
+                h-9 text-xs font-medium transition-all duration-200 
+                ${selectedRelevance === level.key 
+                  ? `bg-annotation-${level.color} text-white border-annotation-${level.color} shadow-lg shadow-annotation-${level.color}/25` 
+                  : `border-annotation-${level.color}/30 hover:bg-annotation-${level.color}-bg hover:border-annotation-${level.color}/50`
+                }
+              `}
             >
+              <span className="mr-1">{level.emoji}</span>
               {level.label}
             </Button>
           ))}
@@ -214,17 +232,24 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
 
       {/* Annotation Legend */}
       {annotations.length > 0 && (
-        <Card className="p-4">
-          <h4 className="text-sm font-medium text-foreground mb-3">Annotation Heatmap</h4>
-          <div className="flex gap-4 text-xs">
+        <Card className="p-5 bg-gradient-to-br from-card to-card/50">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-5 h-5 rounded bg-gradient-to-r from-annotation-high to-annotation-low"></div>
+            <h4 className="text-sm font-semibold text-foreground">Annotation Heatmap</h4>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             {relevanceLevels.map((level) => {
               const count = annotations.filter(a => a.relevanceLevel === level.key).length;
+              const percentage = annotations.length > 0 ? Math.round((count / annotations.length) * 100) : 0;
               return (
-                <div key={level.key} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded bg-annotation-${level.color} bg-opacity-60`} />
-                  <span className="text-muted-foreground">
-                    {level.label} ({count})
-                  </span>
+                <div key={level.key} className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50 border">
+                  <div className={`w-6 h-6 rounded-full bg-annotation-${level.color} shadow-lg flex items-center justify-center text-white text-xs font-bold`}>
+                    {count}
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-foreground">{level.emoji} {level.label}</div>
+                    <div className="text-muted-foreground">{percentage}%</div>
+                  </div>
                 </div>
               );
             })}

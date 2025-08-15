@@ -37,16 +37,29 @@
     --input: 220 15% 95%;
     --ring: 250 75% 60%;
 
-    /* Annotation colors - Red to Blue gradient */
-    --annotation-high: 0 85% 65%;      /* High relevance - Red */
-    --annotation-medium: 35 85% 60%;   /* Medium relevance - Orange */
-    --annotation-neutral: 60 85% 55%;  /* Neutral - Yellow */
-    --annotation-low: 220 85% 65%;     /* Low relevance - Blue */
+    /* Annotation heatmap colors - Red to Blue gradient */
+    --annotation-high: 0 84% 60%;      /* High relevance - Vibrant Red */
+    --annotation-medium: 25 100% 50%;  /* Medium relevance - Orange */
+    --annotation-neutral: 45 100% 51%; /* Neutral - Yellow/Amber */
+    --annotation-low: 217 91% 60%;     /* Low relevance - Blue */
     --annotation-none: 0 0% 100%;      /* No annotation - White */
+    
+    /* Annotation background variants with transparency */
+    --annotation-high-bg: 0 84% 60% / 0.15;
+    --annotation-medium-bg: 25 100% 50% / 0.15;
+    --annotation-neutral-bg: 45 100% 51% / 0.15;
+    --annotation-low-bg: 217 91% 60% / 0.15;
+    
+    /* Annotation hover variants */
+    --annotation-high-hover: 0 84% 60% / 0.25;
+    --annotation-medium-hover: 25 100% 50% / 0.25;
+    --annotation-neutral-hover: 45 100% 51% / 0.25;
+    --annotation-low-hover: 217 91% 60% / 0.25;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-annotation: linear-gradient(90deg, hsl(var(--annotation-high)), hsl(var(--annotation-medium)), hsl(var(--annotation-neutral)), hsl(var(--annotation-low)));
+    --gradient-heatmap: linear-gradient(90deg, hsl(var(--annotation-high)), hsl(var(--annotation-medium)), hsl(var(--annotation-neutral)), hsl(var(--annotation-low)));
+    --gradient-annotation-bg: linear-gradient(135deg, hsl(var(--annotation-high-bg)), hsl(var(--annotation-low-bg)));
 
     /* Shadows and effects */
     --shadow-soft: 0 2px 20px -2px hsl(var(--primary) / 0.1);

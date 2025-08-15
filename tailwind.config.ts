@@ -58,7 +58,15 @@ export default {
 					medium: 'hsl(var(--annotation-medium))',
 					neutral: 'hsl(var(--annotation-neutral))',
 					low: 'hsl(var(--annotation-low))',
-					none: 'hsl(var(--annotation-none))'
+					none: 'hsl(var(--annotation-none))',
+					'high-bg': 'hsl(var(--annotation-high-bg))',
+					'medium-bg': 'hsl(var(--annotation-medium-bg))',
+					'neutral-bg': 'hsl(var(--annotation-neutral-bg))',
+					'low-bg': 'hsl(var(--annotation-low-bg))',
+					'high-hover': 'hsl(var(--annotation-high-hover))',
+					'medium-hover': 'hsl(var(--annotation-medium-hover))',
+					'neutral-hover': 'hsl(var(--annotation-neutral-hover))',
+					'low-hover': 'hsl(var(--annotation-low-hover))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
