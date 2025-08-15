@@ -96,27 +96,30 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
         );
       }
 
-      // Add annotated text with native heatmap styling
+      // Add annotated text with heatmap styling - semi-transparent color overlay
       result.push(
         <span
           key={annotation.id}
           className={`
-            px-2 py-1 mx-0.5 rounded-md cursor-pointer
-            bg-annotation-${annotation.relevanceLevel}-bg 
-            hover:bg-annotation-${annotation.relevanceLevel}-hover
-            border border-annotation-${annotation.relevanceLevel}/20
-            shadow-sm
-            transition-all duration-300 ease-out
-            hover:shadow-md hover:scale-[1.02]
+            px-1.5 py-0.5 mx-0.5 rounded-sm cursor-pointer
+            text-foreground font-medium
+            transition-all duration-200 ease-out
+            hover:scale-[1.01]
             relative
-            before:absolute before:inset-0 before:rounded-md 
-            before:bg-gradient-to-r before:from-annotation-${annotation.relevanceLevel}/5 before:to-annotation-${annotation.relevanceLevel}/10
-            before:transition-opacity before:duration-300
-            hover:before:opacity-75
           `}
+          style={{
+            backgroundColor: `hsl(var(--annotation-${annotation.relevanceLevel}-bg))`,
+            borderLeft: `3px solid hsl(var(--annotation-${annotation.relevanceLevel}))`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `hsl(var(--annotation-${annotation.relevanceLevel}-hover))`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = `hsl(var(--annotation-${annotation.relevanceLevel}-bg))`;
+          }}
           title={`${relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}: "${annotation.text}"`}
         >
-          <span className="relative z-10">{annotation.text}</span>
+          {annotation.text}
         </span>
       );
 
@@ -156,12 +159,12 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
               className={`
                 h-9 text-xs font-medium transition-all duration-200 
                 ${selectedRelevance === level.key 
-                  ? `bg-annotation-${level.color} text-white border-annotation-${level.color} shadow-lg shadow-annotation-${level.color}/25` 
+                  ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25' 
                   : `border-annotation-${level.color}/30 hover:bg-annotation-${level.color}-bg hover:border-annotation-${level.color}/50`
                 }
               `}
             >
-              <span className="mr-1">{level.emoji}</span>
+              <span className="mr-1.5">{level.emoji}</span>
               {level.label}
             </Button>
           ))}

@@ -44,16 +44,16 @@
     --annotation-low: 217 91% 60%;     /* Low relevance - Blue */
     --annotation-none: 0 0% 100%;      /* No annotation - White */
     
-    /* Annotation background variants with transparency */
-    --annotation-high-bg: 0 84% 60% / 0.15;
-    --annotation-medium-bg: 25 100% 50% / 0.15;
-    --annotation-neutral-bg: 45 100% 51% / 0.15;
-    --annotation-low-bg: 217 91% 60% / 0.15;
+    /* Annotation background variants with transparency - Red to Blue heatmap */
+    --annotation-high-bg: 0 84% 60% / 0.25;     /* Red with transparency */
+    --annotation-medium-bg: 25 100% 50% / 0.20;  /* Orange with transparency */
+    --annotation-neutral-bg: 45 100% 51% / 0.18; /* Yellow with transparency */
+    --annotation-low-bg: 217 91% 60% / 0.15;     /* Blue with transparency */
     
-    /* Annotation hover variants */
-    --annotation-high-hover: 0 84% 60% / 0.25;
-    --annotation-medium-hover: 25 100% 50% / 0.25;
-    --annotation-neutral-hover: 45 100% 51% / 0.25;
+    /* Annotation hover variants - more visible on hover */
+    --annotation-high-hover: 0 84% 60% / 0.35;
+    --annotation-medium-hover: 25 100% 50% / 0.30;
+    --annotation-neutral-hover: 45 100% 51% / 0.28;
     --annotation-low-hover: 217 91% 60% / 0.25;
 
     /* Gradients */
