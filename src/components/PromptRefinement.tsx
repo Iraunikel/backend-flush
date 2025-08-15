@@ -38,22 +38,31 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
 
     if (highRelevanceTexts.length > 0) {
       refinedPrompt += `\n✅ **FOCUS MORE ON THESE ASPECTS** (user marked as highly relevant):\n`;
-      highRelevanceTexts.forEach(text => {
-        refinedPrompt += `- "${text.slice(0, 100)}${text.length > 100 ? '...' : ''}"\n`;
+      annotations.filter(a => a.relevanceLevel === 'high').forEach(annotation => {
+        refinedPrompt += `- "${annotation.text.slice(0, 100)}${annotation.text.length > 100 ? '...' : ''}"\n`;
+        if (annotation.comment) {
+          refinedPrompt += `  Context: ${annotation.comment}\n`;
+        }
       });
     }
 
     if (mediumRelevanceTexts.length > 0) {
       refinedPrompt += `\n⚖️ **MAINTAIN BALANCE** (moderately relevant):\n`;
-      mediumRelevanceTexts.forEach(text => {
-        refinedPrompt += `- "${text.slice(0, 100)}${text.length > 100 ? '...' : ''}"\n`;
+      annotations.filter(a => a.relevanceLevel === 'medium').forEach(annotation => {
+        refinedPrompt += `- "${annotation.text.slice(0, 100)}${annotation.text.length > 100 ? '...' : ''}"\n`;
+        if (annotation.comment) {
+          refinedPrompt += `  Context: ${annotation.comment}\n`;
+        }
       });
     }
 
     if (lowRelevanceTexts.length > 0) {
       refinedPrompt += `\n❌ **REDUCE OR AVOID** (user marked as less relevant):\n`;
-      lowRelevanceTexts.forEach(text => {
-        refinedPrompt += `- "${text.slice(0, 100)}${text.length > 100 ? '...' : ''}"\n`;
+      annotations.filter(a => a.relevanceLevel === 'low').forEach(annotation => {
+        refinedPrompt += `- "${annotation.text.slice(0, 100)}${annotation.text.length > 100 ? '...' : ''}"\n`;
+        if (annotation.comment) {
+          refinedPrompt += `  Context: ${annotation.comment}\n`;
+        }
       });
     }
 

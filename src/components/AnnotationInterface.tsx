@@ -2,7 +2,10 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Palette, RotateCcw, Sparkles } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Palette, RotateCcw, Sparkles, MessageSquare, Copy, Clipboard } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Annotation {
   id: string;
@@ -10,6 +13,7 @@ export interface Annotation {
   endIndex: number;
   relevanceLevel: 'high' | 'medium' | 'neutral' | 'low';
   text: string;
+  comment?: string;
 }
 
 interface AnnotationInterfaceProps {
@@ -26,7 +30,11 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedRelevance, setSelectedRelevance] = useState<'high' | 'medium' | 'neutral' | 'low'>('high');
   const [isSelecting, setIsSelecting] = useState(false);
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const [pendingAnnotation, setPendingAnnotation] = useState<Omit<Annotation, 'comment'> | null>(null);
+  const [commentText, setCommentText] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const relevanceLevels = [
     { key: 'high', label: 'High', color: 'high', description: 'Most relevant', emoji: '🔥' },
@@ -53,8 +61,8 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
 
     if (startIndex === -1) return;
 
-    // Create new annotation
-    const newAnnotation: Annotation = {
+    // Create pending annotation for comment dialog
+    const newAnnotation: Omit<Annotation, 'comment'> = {
       id: `annotation-${Date.now()}-${Math.random()}`,
       startIndex,
       endIndex,
@@ -62,17 +70,56 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
       text: selectedText
     };
 
-    const updatedAnnotations = [...annotations, newAnnotation];
-    setAnnotations(updatedAnnotations);
-    onAnnotationsChange(updatedAnnotations);
+    setPendingAnnotation(newAnnotation);
+    setShowCommentDialog(true);
 
     // Clear selection
     selection.removeAllRanges();
   }, [annotations, selectedRelevance, isSelecting, onAnnotationsChange]);
 
+  const handleCommentSubmit = () => {
+    if (!pendingAnnotation) return;
+
+    const finalAnnotation: Annotation = {
+      ...pendingAnnotation,
+      comment: commentText.trim() || undefined
+    };
+
+    const updatedAnnotations = [...annotations, finalAnnotation];
+    setAnnotations(updatedAnnotations);
+    onAnnotationsChange(updatedAnnotations);
+
+    // Reset dialog state
+    setShowCommentDialog(false);
+    setPendingAnnotation(null);
+    setCommentText('');
+  };
+
+  const handleCommentCancel = () => {
+    setShowCommentDialog(false);
+    setPendingAnnotation(null);
+    setCommentText('');
+  };
+
   const clearAnnotations = () => {
     setAnnotations([]);
     onAnnotationsChange([]);
+  };
+
+  const copyContent = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({
+        title: "Copied!",
+        description: "Content copied to clipboard",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy failed",
+        description: "Could not copy to clipboard",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderAnnotatedContent = () => {
@@ -117,7 +164,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = `hsl(var(--annotation-${annotation.relevanceLevel}-bg))`;
           }}
-          title={`${relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}: "${annotation.text}"`}
+          title={`${relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}: "${annotation.text}"${annotation.comment ? `\nComment: ${annotation.comment}` : ''}`}
         >
           {annotation.text}
         </span>
@@ -199,6 +246,15 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-foreground">AI Response</h3>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyContent}
+                className="h-7"
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy
+              </Button>
               {annotations.length > 0 && (
                 <>
                   <Badge variant="secondary" className="text-xs">
@@ -219,15 +275,16 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           
           <div
             ref={contentRef}
-            className={`min-h-32 text-sm ${isSelecting ? 'cursor-text select-text' : 'select-none'}`}
+            className={`min-h-32 text-sm select-text`}
             onMouseUp={handleTextSelection}
+            style={{ userSelect: 'text' }}
           >
             {renderAnnotatedContent()}
           </div>
 
           {isSelecting && (
             <p className="text-xs text-muted-foreground">
-              💡 Select text and it will be marked with the chosen relevance level
+              💡 Select text and it will be marked with the chosen relevance level. You can add optional comments to provide context.
             </p>
           )}
         </div>
@@ -259,6 +316,58 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           </div>
         </Card>
       )}
+
+      {/* Comment Dialog */}
+      <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Add Comment to Annotation
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {pendingAnnotation && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium text-foreground mb-1">Selected text:</p>
+                <p className="text-sm text-muted-foreground italic">
+                  "{pendingAnnotation.text.slice(0, 100)}{pendingAnnotation.text.length > 100 ? '...' : ''}"
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Relevance: <span className={`font-medium text-annotation-${pendingAnnotation.relevanceLevel}`}>
+                    {relevanceLevels.find(l => l.key === pendingAnnotation.relevanceLevel)?.label}
+                  </span>
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Comment (optional)
+              </label>
+              <Input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Why is this relevant/irrelevant? Any specific notes..."
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                This comment will be included in the refined prompt to provide context to the AI.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={handleCommentCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleCommentSubmit} className="bg-primary">
+              Add Annotation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
