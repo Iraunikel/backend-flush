@@ -146,7 +146,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           <div className="w-6 h-6 rounded-full bg-gradient-to-r from-annotation-high to-annotation-low flex items-center justify-center">
             <Palette className="w-3 h-3 text-white" />
           </div>
-          <span className="text-sm font-semibold text-foreground">Relevance Level:</span>
+          <span className="text-sm font-semibold text-foreground">Choose Relevance:</span>
         </div>
         
         <div className="flex gap-2">
