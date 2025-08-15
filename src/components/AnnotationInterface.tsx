@@ -32,6 +32,8 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   onRefinePrompt,
   annotations
 }) => {
+  // Store the original plain text content separately from the annotated display
+  const [plainTextContent, setPlainTextContent] = useState(content);
   const [selectedRelevance, setSelectedRelevance] = useState<'high' | 'medium' | 'neutral' | 'low'>('high');
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [pendingAnnotation, setPendingAnnotation] = useState<Omit<Annotation, 'comment'> | null>(null);
@@ -41,6 +43,11 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   const commentInputRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Update plain text when content changes
+  useEffect(() => {
+    setPlainTextContent(content);
+  }, [content]);
+
   const relevanceLevels = [
     { key: 'high', label: 'High', color: 'high', description: 'Most relevant', emoji: '🔥' },
     { key: 'medium', label: 'Medium', color: 'medium', description: 'Somewhat relevant', emoji: '⚡' },
@@ -48,33 +55,33 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
     { key: 'neutral', label: 'Neutral/Deselect', color: 'neutral', description: 'Neutral or Deselect', emoji: '⚪' }
   ] as const;
 
-  const handleTextSelection = useCallback(() => {
+  // Helper function to convert DOM position to plain text position
+  const getTextPosition = useCallback((node: Node, offset: number): number => {
+    if (!contentRef.current) return 0;
+    
+    let textPosition = 0;
+    const walker = document.createTreeWalker(
+      contentRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+      if (currentNode === node) {
+        return textPosition + offset;
+      }
+      textPosition += currentNode.textContent?.length || 0;
+      currentNode = walker.nextNode();
+    }
+    
+    return textPosition;
+  }, []);
+
+  // Helper function to handle annotation creation with validated indices
+  const handleAnnotationWithIndices = useCallback((startIndex: number, endIndex: number, selectedText: string, rect: DOMRect, containerRect: DOMRect) => {
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    const selectedText = range.toString().trim();
     
-    if (!selectedText || !contentRef.current) return;
-
-    // Get selection position for comment input
-    const rect = range.getBoundingClientRect();
-    const containerRect = contentRef.current.getBoundingClientRect();
-    
-    // Calculate text indices using range position within container
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = contentRef.current.innerHTML;
-    const containerText = tempDiv.textContent || '';
-    
-    // Get the actual position of the selection within the text content
-    const preCaretRange = range.cloneRange();
-    preCaretRange.selectNodeContents(contentRef.current);
-    preCaretRange.setEnd(range.startContainer, range.startOffset);
-    const startIndex = (preCaretRange.toString()).length;
-    const endIndex = startIndex + selectedText.length;
-
-    if (startIndex === -1) return;
-
     // Handle neutral/deselect functionality
     if (selectedRelevance === 'neutral') {
       // Remove any existing annotations in this range
@@ -86,7 +93,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
       onAnnotationsChange(updatedAnnotations);
       
       // Clear selection
-      selection.removeAllRanges();
+      if (selection) selection.removeAllRanges();
       return;
     }
 
@@ -116,8 +123,39 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
     setShowCommentInput(true);
 
     // Clear selection
-    selection.removeAllRanges();
+    if (selection) selection.removeAllRanges();
   }, [annotations, selectedRelevance, onAnnotationsChange]);
+
+  const handleTextSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString().trim();
+    
+    if (!selectedText || !contentRef.current) return;
+
+    // Get selection position for comment input
+    const rect = range.getBoundingClientRect();
+    const containerRect = contentRef.current.getBoundingClientRect();
+    
+    // Calculate text indices using proper DOM-to-text mapping
+    const startIndex = getTextPosition(range.startContainer, range.startOffset);
+    const endIndex = getTextPosition(range.endContainer, range.endOffset);
+    
+    // Validate that the selected text matches what we expect from plain text
+    const actualSelectedText = plainTextContent.slice(startIndex, endIndex);
+    if (actualSelectedText !== selectedText) {
+      console.warn('Text selection mismatch, falling back to search');
+      // Fallback: find the selected text in plain text content
+      const fallbackStart = plainTextContent.indexOf(selectedText);
+      if (fallbackStart === -1) return;
+      const fallbackEnd = fallbackStart + selectedText.length;
+      return handleAnnotationWithIndices(fallbackStart, fallbackEnd, selectedText, rect, containerRect);
+    }
+
+    return handleAnnotationWithIndices(startIndex, endIndex, selectedText, rect, containerRect);
+  }, [plainTextContent, getTextPosition, handleAnnotationWithIndices]);
 
   // Handle click outside to close comment input
   useEffect(() => {
@@ -187,10 +225,10 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
 
   const renderAnnotatedContent = () => {
     if (annotations.length === 0) {
-      return content;
+      return plainTextContent;
     }
 
-    // Create a map of character positions to annotations
+    // Create a map of character positions to annotations based on plain text
     const charMap: { [key: number]: Annotation[] } = {};
     annotations.forEach(annotation => {
       for (let i = annotation.startIndex; i < annotation.endIndex; i++) {
@@ -211,7 +249,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
       return aIds.every((id, index) => id === bIds[index]);
     };
 
-    for (let i = 0; i < content.length; i++) {
+    for (let i = 0; i < plainTextContent.length; i++) {
       const charAnnotations = charMap[i] || [];
       
       // Check if annotations changed
@@ -252,10 +290,10 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
         
         // Reset for new segment
         currentAnnotations = charAnnotations;
-        currentText = content[i];
+        currentText = plainTextContent[i];
         currentStart = i;
       } else {
-        currentText += content[i];
+        currentText += plainTextContent[i];
       }
     }
 
@@ -450,11 +488,11 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
         {/* Visual Heatmap */}
         <div className="mb-6">
           <div className="h-8 rounded-lg overflow-hidden border bg-background/50 relative">
-            {content.length > 0 ? (
+            {plainTextContent.length > 0 ? (
               <>
                 {/* Calculate gradient based on actual text positions */}
                 {(() => {
-                  const textLength = content.length;
+                  const textLength = plainTextContent.length;
                   let highChars = 0;
                   let mediumChars = 0;
                   let lowChars = 0;
