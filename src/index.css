@@ -2,41 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Flush Design System - Modern AI annotation interface */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors */
+    --background: 0 0% 98%;
+    --foreground: 220 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 220 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Brand colors - Purple to blue gradient theme */
+    --primary: 250 75% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 260 85% 70%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 220 15% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 10% 96%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 250 75% 95%;
+    --accent-foreground: 250 75% 30%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 15% 90%;
+    --input: 220 15% 95%;
+    --ring: 250 75% 60%;
 
-    --radius: 0.5rem;
+    /* Annotation colors - Red to Blue gradient */
+    --annotation-high: 0 85% 65%;      /* High relevance - Red */
+    --annotation-medium: 35 85% 60%;   /* Medium relevance - Orange */
+    --annotation-neutral: 60 85% 55%;  /* Neutral - Yellow */
+    --annotation-low: 220 85% 65%;     /* Low relevance - Blue */
+    --annotation-none: 0 0% 100%;      /* No annotation - White */
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-annotation: linear-gradient(90deg, hsl(var(--annotation-high)), hsl(var(--annotation-medium)), hsl(var(--annotation-neutral)), hsl(var(--annotation-low)));
+
+    /* Shadows and effects */
+    --shadow-soft: 0 2px 20px -2px hsl(var(--primary) / 0.1);
+    --shadow-annotation: 0 1px 3px hsl(0 0% 0% / 0.12);
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 

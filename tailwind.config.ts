@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -51,6 +52,13 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				annotation: {
+					high: 'hsl(var(--annotation-high))',
+					medium: 'hsl(var(--annotation-medium))',
+					neutral: 'hsl(var(--annotation-neutral))',
+					low: 'hsl(var(--annotation-low))',
+					none: 'hsl(var(--annotation-none))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
