@@ -109,10 +109,12 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
   const getAnnotationStats = () => {
     const total = annotations.length;
     const high = annotations.filter(a => a.relevanceLevel === 'high').length;
+    const medium = annotations.filter(a => a.relevanceLevel === 'medium').length;
+    const neutral = annotations.filter(a => a.relevanceLevel === 'neutral').length;
     const low = annotations.filter(a => a.relevanceLevel === 'low').length;
     const noiseReduction = total > 0 ? Math.round((low / total) * 100) : 0;
     
-    return { total, high, low, noiseReduction };
+    return { total, high, medium, neutral, low, noiseReduction };
   };
 
   const stats = getAnnotationStats();
@@ -172,22 +174,30 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
           Refinement Analytics
         </h3>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">{stats.total}</div>
-            <div className="text-xs text-muted-foreground">Total Annotations</div>
+            <div className="text-xs text-muted-foreground">Total</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-annotation-high">{stats.high}</div>
-            <div className="text-xs text-muted-foreground">High Relevance</div>
+            <div className="text-xs text-muted-foreground">High</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-annotation-medium">{stats.medium}</div>
+            <div className="text-xs text-muted-foreground">Medium</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-annotation-neutral">{stats.neutral}</div>
+            <div className="text-xs text-muted-foreground">Neutral</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-annotation-low">{stats.low}</div>
-            <div className="text-xs text-muted-foreground">Low Relevance</div>
+            <div className="text-xs text-muted-foreground">Low</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-destructive">{stats.noiseReduction}%</div>
-            <div className="text-xs text-muted-foreground">Noise Identified</div>
+            <div className="text-xs text-muted-foreground">Noise</div>
           </div>
         </div>
       </Card>

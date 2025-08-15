@@ -161,7 +161,8 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
         result.push(content.slice(lastIndex, annotation.startIndex));
       }
 
-      // Add annotated text with heatmap styling - semi-transparent color overlay
+      // Add annotated text with heatmap styling - just highlight, don't duplicate text
+      const annotatedText = content.slice(annotation.startIndex, annotation.endIndex);
       result.push(
         `<span
           key="${annotation.id}"
@@ -178,7 +179,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           "
           title="${annotation.comment || relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}"
         >
-          ${annotation.text}
+          ${annotatedText}
         </span>`
       );
 
@@ -351,51 +352,67 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           <div className="h-8 rounded-lg overflow-hidden border bg-background/50 relative">
             {content.length > 0 ? (
               <>
-                {/* Background neutral */}
-                <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/30"></div>
-                
-                {/* Annotation overlays */}
-                {annotations.map((annotation) => {
-                  const startPercent = (annotation.startIndex / content.length) * 100;
-                  const widthPercent = ((annotation.endIndex - annotation.startIndex) / content.length) * 100;
-                  
-                  return (
-                    <div
-                      key={annotation.id}
-                      className={`absolute top-0 h-full bg-annotation-${annotation.relevanceLevel} opacity-80 transition-all duration-300`}
-                      style={{
-                        left: `${startPercent}%`,
-                        width: `${widthPercent}%`
-                      }}
-                      title={`${annotation.text} (${annotation.relevanceLevel})`}
-                    />
-                  );
-                })}
-                
-                {/* Gradient overlay for smooth blending */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-transparent mix-blend-overlay"></div>
+                {/* Background - smooth gradient from blue to red */}
+                {annotations.length === 0 ? (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-200/30 via-gray-200/30 to-red-200/30"></div>
+                ) : (
+                  <>
+                    {/* Base gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-200/20 via-gray-200/20 to-red-200/20"></div>
+                    
+                    {/* Annotation overlays with percentages */}
+                    {annotations.map((annotation) => {
+                      const startPercent = (annotation.startIndex / content.length) * 100;
+                      const widthPercent = ((annotation.endIndex - annotation.startIndex) / content.length) * 100;
+                      const percentage = Math.round(widthPercent);
+                      
+                      // Color mapping for smooth gradient
+                      const colorMap = {
+                        high: 'rgba(239, 68, 68, 0.8)', // red-500
+                        medium: 'rgba(251, 146, 60, 0.8)', // orange-400
+                        neutral: 'rgba(156, 163, 175, 0.8)', // gray-400
+                        low: 'rgba(59, 130, 246, 0.8)' // blue-500
+                      };
+                      
+                      return (
+                        <div
+                          key={annotation.id}
+                          className="absolute top-0 h-full transition-all duration-500 ease-out flex items-center justify-center"
+                          style={{
+                            left: `${startPercent}%`,
+                            width: `${widthPercent}%`,
+                            backgroundColor: colorMap[annotation.relevanceLevel]
+                          }}
+                          title={`${annotation.text} (${annotation.relevanceLevel}) - ${percentage}%`}
+                        >
+                          {widthPercent > 8 && (
+                            <span className="text-white text-xs font-bold drop-shadow-sm">
+                              {percentage}%
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </>
             ) : (
-              <div className="absolute inset-0 bg-muted/30 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-200/30 via-gray-200/30 to-red-200/30 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground">No content to visualize</span>
               </div>
             )}
           </div>
           
-          {/* Heatmap legend */}
+          {/* Simple gradient legend */}
           <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>Start</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-annotation-high"></div>
-              <span>High</span>
-              <div className="w-3 h-3 rounded-full bg-annotation-medium mx-2"></div>
-              <span>Medium</span>
-              <div className="w-3 h-3 rounded-full bg-annotation-neutral mx-2"></div>
-              <span>Neutral</span>
-              <div className="w-3 h-3 rounded-full bg-annotation-low mx-2"></div>
-              <span>Low</span>
-            </div>
-            <span>End</span>
+            <span className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              Low Relevance
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              High Relevance
+            </span>
           </div>
         </div>
 
