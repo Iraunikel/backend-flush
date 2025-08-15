@@ -303,27 +303,29 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
                     </span>
                     {" - Selection highlighted"}
                   </div>
-                  <Input
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Add a comment to this selection or continue selection..."
-                    className="text-xs h-8 border-primary/20"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleCommentSubmit();
-                      } else if (e.key === 'Escape') {
-                        handleCommentCancel();
-                      }
-                    }}
-                  />
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={handleCommentSubmit} className="h-6 text-xs text-muted-foreground hover:text-foreground">
-                      {commentText.trim() ? 'Add Comment' : 'Continue'}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={handleCommentCancel} className="h-6 text-xs text-muted-foreground hover:text-foreground">
-                      Skip
+                  <div className="relative">
+                    <Input
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Add or select next"
+                      className="text-xs h-8 border-primary/20 pr-8"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCommentSubmit();
+                        } else if (e.key === 'Escape') {
+                          handleCommentCancel();
+                        }
+                      }}
+                    />
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={handleCommentSubmit} 
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      ↵
                     </Button>
                   </div>
                 </div>
@@ -332,7 +334,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           </div>
 
           <p className="text-xs text-muted-foreground mt-2">
-            💡 Select text to annotate with relevance levels. Comments help provide context.
+            💡 Select text to annotate with relevance levels. Non-selected areas will be kept without changes. Click to edit.
           </p>
         </div>
       </Card>
@@ -369,17 +371,40 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
       {/* All Annotations List */}
       {annotations.length > 0 && (
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Eye className="w-4 h-4" />
-            <h4 className="text-sm font-semibold text-foreground">All Annotations ({annotations.length})</h4>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              <h4 className="text-sm font-semibold text-foreground">All Annotations ({annotations.length})</h4>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAnnotations}
+              className="h-7 text-xs"
+              disabled={annotations.length === 0}
+            >
+              <RotateCcw className="w-3 h-3 mr-1" />
+              Clear All
+            </Button>
           </div>
           <div className="space-y-3 max-h-80 overflow-y-auto">
-            {annotations.map((annotation) => (
-              <div key={annotation.id} className="border rounded-lg p-3 bg-background/50">
-                <div className="flex items-center gap-2 mb-2">
+            {annotations.map((annotation, index) => (
+              <div key={annotation.id} className="border rounded-lg p-3 bg-background/50 group relative">
+                <div className="flex items-center justify-between mb-2">
                   <span className={`text-annotation-${annotation.relevanceLevel} font-medium text-xs`}>
                     {relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.emoji} {relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.label}
                   </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const updatedAnnotations = annotations.filter(a => a.id !== annotation.id);
+                      onAnnotationsChange(updatedAnnotations);
+                    }}
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                  >
+                    ✕
+                  </Button>
                 </div>
                 <div className="text-xs text-foreground mb-2 font-medium">
                   "{annotation.text}"
