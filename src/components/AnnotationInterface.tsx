@@ -593,28 +593,6 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           
         </div>
 
-        {/* Statistics */}
-        {annotations.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            {relevanceLevels.map((level) => {
-              const levelAnnotations = annotations.filter(a => a.relevanceLevel === level.key);
-              const totalAnnotatedLength = levelAnnotations.reduce((sum, annotation) => sum + (annotation.endIndex - annotation.startIndex), 0);
-              const totalContentLength = content.length;
-              const percentage = totalContentLength > 0 ? Math.round((totalAnnotatedLength / totalContentLength) * 100) : 0;
-              return (
-                <div key={level.key} className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background/50 border">
-                  <div className={`w-6 h-6 rounded-full bg-annotation-${level.color} shadow-lg flex items-center justify-center text-white text-xs font-bold`}>
-                    {levelAnnotations.length}
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium text-foreground">{level.emoji} {level.label}</div>
-                    <div className="text-muted-foreground">{percentage}%</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </Card>
 
       {/* All Annotations List */}
