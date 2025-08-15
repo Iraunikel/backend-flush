@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   const [commentText, setCommentText] = useState('');
   const [commentPosition, setCommentPosition] = useState({ x: 0, y: 0 });
   const contentRef = useRef<HTMLDivElement>(null);
+  const commentInputRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const relevanceLevels = [
@@ -96,6 +97,24 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
     selection.removeAllRanges();
   }, [annotations, selectedRelevance, onAnnotationsChange]);
 
+  // Handle click outside to close comment input
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (commentInputRef.current && !commentInputRef.current.contains(event.target as Node)) {
+        if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
+          setShowCommentInput(false);
+          setPendingAnnotation(null);
+          setCommentText('');
+        }
+      }
+    };
+
+    if (showCommentInput) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showCommentInput]);
+
   const handleCommentSubmit = () => {
     if (!pendingAnnotation) return;
 
@@ -149,46 +168,104 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
       return content;
     }
 
-    // Sort annotations by start index
-    const sortedAnnotations = [...annotations].sort((a, b) => a.startIndex - b.startIndex);
-    
-    let result = [];
-    let lastIndex = 0;
-
-    sortedAnnotations.forEach((annotation, index) => {
-      // Add text before annotation
-      if (annotation.startIndex > lastIndex) {
-        result.push(content.slice(lastIndex, annotation.startIndex));
+    // Create a map of character positions to annotations
+    const charMap: { [key: number]: Annotation[] } = {};
+    annotations.forEach(annotation => {
+      for (let i = annotation.startIndex; i < annotation.endIndex; i++) {
+        if (!charMap[i]) charMap[i] = [];
+        charMap[i].push(annotation);
       }
-
-      // Add annotated text with heatmap styling - just highlight, don't duplicate text
-      const annotatedText = content.slice(annotation.startIndex, annotation.endIndex);
-      result.push(
-        `<span
-          key="${annotation.id}"
-          class="
-            px-1.5 py-0.5 mx-0.5 rounded-sm cursor-pointer
-            text-foreground font-medium
-            transition-all duration-200 ease-out
-            hover:scale-[1.01]
-            relative
-          "
-          style="
-            background-color: hsl(var(--annotation-${annotation.relevanceLevel}-bg));
-            border-left: 3px solid hsl(var(--annotation-${annotation.relevanceLevel}));
-          "
-          title="${annotation.comment || relevanceLevels.find(l => l.key === annotation.relevanceLevel)?.description}"
-        >
-          ${annotatedText}
-        </span>`
-      );
-
-      lastIndex = annotation.endIndex;
     });
 
-    // Add remaining text
-    if (lastIndex < content.length) {
-      result.push(content.slice(lastIndex));
+    const result = [];
+    let currentAnnotations: Annotation[] = [];
+    let currentText = '';
+    let currentStart = 0;
+
+    const arraysEqual = (a: Annotation[], b: Annotation[]): boolean => {
+      if (a.length !== b.length) return false;
+      const aIds = a.map(ann => ann.id).sort();
+      const bIds = b.map(ann => ann.id).sort();
+      return aIds.every((id, index) => id === bIds[index]);
+    };
+
+    for (let i = 0; i < content.length; i++) {
+      const charAnnotations = charMap[i] || [];
+      
+      // Check if annotations changed
+      const annotationsChanged = !arraysEqual(currentAnnotations, charAnnotations);
+      
+      if (annotationsChanged) {
+        // Push current segment if it has content
+        if (currentText) {
+          if (currentAnnotations.length > 0) {
+            // Find the highest priority annotation
+            const primaryAnnotation = currentAnnotations.reduce((prev, curr) => {
+              const priority = { high: 4, medium: 3, neutral: 2, low: 1 };
+              return priority[curr.relevanceLevel] > priority[prev.relevanceLevel] ? curr : prev;
+            });
+            
+            result.push(
+              `<span
+                class="
+                  px-1.5 py-0.5 mx-0.5 rounded-sm cursor-pointer
+                  text-foreground font-medium
+                  transition-all duration-200 ease-out
+                  hover:scale-[1.01]
+                  relative
+                "
+                style="
+                  background-color: hsl(var(--annotation-${primaryAnnotation.relevanceLevel}-bg));
+                  border-left: 3px solid hsl(var(--annotation-${primaryAnnotation.relevanceLevel}));
+                "
+                title="${primaryAnnotation.comment || relevanceLevels.find(l => l.key === primaryAnnotation.relevanceLevel)?.description}"
+              >
+                ${currentText}
+              </span>`
+            );
+          } else {
+            result.push(currentText);
+          }
+        }
+        
+        // Reset for new segment
+        currentAnnotations = charAnnotations;
+        currentText = content[i];
+        currentStart = i;
+      } else {
+        currentText += content[i];
+      }
+    }
+
+    // Handle final segment
+    if (currentText) {
+      if (currentAnnotations.length > 0) {
+        const primaryAnnotation = currentAnnotations.reduce((prev, curr) => {
+          const priority = { high: 4, medium: 3, neutral: 2, low: 1 };
+          return priority[curr.relevanceLevel] > priority[prev.relevanceLevel] ? curr : prev;
+        });
+        
+        result.push(
+          `<span
+            class="
+              px-1.5 py-0.5 mx-0.5 rounded-sm cursor-pointer
+              text-foreground font-medium
+              transition-all duration-200 ease-out
+              hover:scale-[1.01]
+              relative
+            "
+            style="
+              background-color: hsl(var(--annotation-${primaryAnnotation.relevanceLevel}-bg));
+              border-left: 3px solid hsl(var(--annotation-${primaryAnnotation.relevanceLevel}));
+            "
+            title="${primaryAnnotation.comment || relevanceLevels.find(l => l.key === primaryAnnotation.relevanceLevel)?.description}"
+          >
+            ${currentText}
+          </span>`
+        );
+      } else {
+        result.push(currentText);
+      }
     }
 
     return result.join('');
@@ -290,6 +367,7 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
             {/* Inline Comment Input */}
             {showCommentInput && pendingAnnotation && (
               <div 
+                ref={commentInputRef}
                 className="absolute z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 min-w-64"
                 style={{
                   left: `${commentPosition.x}px`,
@@ -352,52 +430,75 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           <div className="h-8 rounded-lg overflow-hidden border bg-background/50 relative">
             {content.length > 0 ? (
               <>
-                {/* Background - smooth gradient from blue to red */}
-                {annotations.length === 0 ? (
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-200/30 via-gray-200/30 to-red-200/30"></div>
-                ) : (
-                  <>
-                    {/* Base gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-200/20 via-gray-200/20 to-red-200/20"></div>
+                {/* Calculate coverage percentages */}
+                {(() => {
+                  const textLength = content.length;
+                  let annotatedChars = 0;
+                  let highChars = 0;
+                  let mediumChars = 0;
+                  let lowChars = 0;
+                  let neutralChars = 0;
+
+                  annotations.forEach(annotation => {
+                    const length = annotation.endIndex - annotation.startIndex;
+                    annotatedChars += length;
                     
-                    {/* Annotation overlays with percentages */}
-                    {annotations.map((annotation) => {
-                      const startPercent = (annotation.startIndex / content.length) * 100;
-                      const widthPercent = ((annotation.endIndex - annotation.startIndex) / content.length) * 100;
-                      const percentage = Math.round(widthPercent);
-                      
-                      // Color mapping for smooth gradient
-                      const colorMap = {
-                        high: 'rgba(239, 68, 68, 0.8)', // red-500
-                        medium: 'rgba(251, 146, 60, 0.8)', // orange-400
-                        neutral: 'rgba(156, 163, 175, 0.8)', // gray-400
-                        low: 'rgba(59, 130, 246, 0.8)' // blue-500
-                      };
-                      
-                      return (
-                        <div
-                          key={annotation.id}
-                          className="absolute top-0 h-full transition-all duration-500 ease-out flex items-center justify-center"
+                    switch (annotation.relevanceLevel) {
+                      case 'high': highChars += length; break;
+                      case 'medium': mediumChars += length; break;
+                      case 'low': lowChars += length; break;
+                      default: neutralChars += length;
+                    }
+                  });
+
+                  const annotatedPercentage = (annotatedChars / textLength) * 100;
+                  const neutralPercentage = 100 - annotatedPercentage;
+
+                  // Determine dominant annotation type
+                  let dominantColor = '#9CA3AF'; // gray-400 for neutral
+                  if (highChars > mediumChars && highChars > lowChars && highChars > neutralChars) {
+                    dominantColor = '#EF4444'; // red-500
+                  } else if (lowChars > highChars && lowChars > mediumChars && lowChars > neutralChars) {
+                    dominantColor = '#3B82F6'; // blue-500
+                  } else if (mediumChars > 0 || neutralChars > 0) {
+                    dominantColor = '#F59E0B'; // amber-500
+                  }
+
+                  return (
+                    <>
+                      {/* Background gradient based on coverage */}
+                      {annotations.length === 0 ? (
+                        <div 
+                          className="absolute inset-0"
                           style={{
-                            left: `${startPercent}%`,
-                            width: `${widthPercent}%`,
-                            backgroundColor: colorMap[annotation.relevanceLevel]
+                            background: 'linear-gradient(90deg, #9CA3AF 0%, #9CA3AF 100%)'
                           }}
-                          title={`${annotation.text} (${annotation.relevanceLevel}) - ${percentage}%`}
-                        >
-                          {widthPercent > 8 && (
-                            <span className="text-white text-xs font-bold drop-shadow-sm">
-                              {percentage}%
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
+                        ></div>
+                      ) : (
+                        <div 
+                          className="absolute inset-0"
+                          style={{
+                            background: `linear-gradient(90deg, 
+                              #3B82F6 0%, 
+                              #9CA3AF ${Math.max(0, neutralPercentage - 5)}%, 
+                              ${dominantColor} ${Math.min(100, neutralPercentage + 5)}%, 
+                              ${dominantColor} 100%)`
+                          }}
+                        ></div>
+                      )}
+                      
+                      {/* Coverage percentage display */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold drop-shadow-sm">
+                          {Math.round(annotatedPercentage)}% Annotated
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-200/30 via-gray-200/30 to-red-200/30 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-gray-400/30 to-red-500/30 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground">No content to visualize</span>
               </div>
             )}
