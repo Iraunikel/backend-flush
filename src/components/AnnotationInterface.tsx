@@ -339,13 +339,68 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
         </div>
       </Card>
 
-      {/* Annotation Legend */}
-      {annotations.length > 0 && (
-        <Card className="p-5 bg-gradient-to-br from-card to-card/50">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-5 h-5 rounded bg-gradient-to-r from-annotation-high to-annotation-low"></div>
-            <h4 className="text-sm font-semibold text-foreground">Annotation Heatmap</h4>
+      {/* Annotation Heatmap */}
+      <Card className="p-5 bg-gradient-to-br from-card to-card/50">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-5 h-5 rounded bg-gradient-to-r from-annotation-high to-annotation-low"></div>
+          <h4 className="text-sm font-semibold text-foreground">Annotation Heatmap</h4>
+        </div>
+        
+        {/* Visual Heatmap */}
+        <div className="mb-6">
+          <div className="h-8 rounded-lg overflow-hidden border bg-background/50 relative">
+            {content.length > 0 ? (
+              <>
+                {/* Background neutral */}
+                <div className="absolute inset-0 bg-gradient-to-r from-muted/30 to-muted/30"></div>
+                
+                {/* Annotation overlays */}
+                {annotations.map((annotation) => {
+                  const startPercent = (annotation.startIndex / content.length) * 100;
+                  const widthPercent = ((annotation.endIndex - annotation.startIndex) / content.length) * 100;
+                  
+                  return (
+                    <div
+                      key={annotation.id}
+                      className={`absolute top-0 h-full bg-annotation-${annotation.relevanceLevel} opacity-80 transition-all duration-300`}
+                      style={{
+                        left: `${startPercent}%`,
+                        width: `${widthPercent}%`
+                      }}
+                      title={`${annotation.text} (${annotation.relevanceLevel})`}
+                    />
+                  );
+                })}
+                
+                {/* Gradient overlay for smooth blending */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-transparent mix-blend-overlay"></div>
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-muted/30 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">No content to visualize</span>
+              </div>
+            )}
           </div>
+          
+          {/* Heatmap legend */}
+          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+            <span>Start</span>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-annotation-high"></div>
+              <span>High</span>
+              <div className="w-3 h-3 rounded-full bg-annotation-medium mx-2"></div>
+              <span>Medium</span>
+              <div className="w-3 h-3 rounded-full bg-annotation-neutral mx-2"></div>
+              <span>Neutral</span>
+              <div className="w-3 h-3 rounded-full bg-annotation-low mx-2"></div>
+              <span>Low</span>
+            </div>
+            <span>End</span>
+          </div>
+        </div>
+
+        {/* Statistics */}
+        {annotations.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             {relevanceLevels.map((level) => {
               const levelAnnotations = annotations.filter(a => a.relevanceLevel === level.key);
@@ -365,8 +420,8 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
               );
             })}
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* All Annotations List */}
       {annotations.length > 0 && (
