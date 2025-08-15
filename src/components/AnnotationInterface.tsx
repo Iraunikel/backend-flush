@@ -44,8 +44,8 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
   const relevanceLevels = [
     { key: 'high', label: 'High', color: 'high', description: 'Most relevant', emoji: '🔥' },
     { key: 'medium', label: 'Medium', color: 'medium', description: 'Somewhat relevant', emoji: '⚡' },
-    { key: 'neutral', label: 'Neutral', color: 'neutral', description: 'Neutral', emoji: '⚪' },
-    { key: 'low', label: 'Low', color: 'low', description: 'Least relevant', emoji: '❄️' }
+    { key: 'low', label: 'Low', color: 'low', description: 'Least relevant', emoji: '❄️' },
+    { key: 'neutral', label: 'Neutral/Deselect', color: 'neutral', description: 'Neutral or Deselect', emoji: '⚪' }
   ] as const;
 
   const handleTextSelection = useCallback(() => {
@@ -67,6 +67,21 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
     const endIndex = startIndex + selectedText.length;
 
     if (startIndex === -1) return;
+
+    // Handle neutral/deselect functionality
+    if (selectedRelevance === 'neutral') {
+      // Remove any existing annotations in this range
+      const updatedAnnotations = annotations.filter(annotation => {
+        return !(annotation.startIndex <= startIndex && annotation.endIndex >= endIndex) &&
+               !(startIndex <= annotation.startIndex && endIndex >= annotation.endIndex) &&
+               !(startIndex < annotation.endIndex && endIndex > annotation.startIndex);
+      });
+      onAnnotationsChange(updatedAnnotations);
+      
+      // Clear selection
+      selection.removeAllRanges();
+      return;
+    }
 
     // Create pending annotation
     const newAnnotation: Omit<Annotation, 'comment'> = {
@@ -430,19 +445,17 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
           <div className="h-8 rounded-lg overflow-hidden border bg-background/50 relative">
             {content.length > 0 ? (
               <>
-                {/* Calculate coverage percentages */}
+                {/* Calculate gradient based on actual text positions */}
                 {(() => {
                   const textLength = content.length;
-                  let annotatedChars = 0;
                   let highChars = 0;
                   let mediumChars = 0;
                   let lowChars = 0;
                   let neutralChars = 0;
 
+                  // Count characters for each relevance level
                   annotations.forEach(annotation => {
                     const length = annotation.endIndex - annotation.startIndex;
-                    annotatedChars += length;
-                    
                     switch (annotation.relevanceLevel) {
                       case 'high': highChars += length; break;
                       case 'medium': mediumChars += length; break;
@@ -451,68 +464,108 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
                     }
                   });
 
-                  const annotatedPercentage = (annotatedChars / textLength) * 100;
-                  const neutralPercentage = 100 - annotatedPercentage;
+                  const highPercentage = Math.round((highChars / textLength) * 100);
+                  const mediumPercentage = Math.round((mediumChars / textLength) * 100);
+                  const lowPercentage = Math.round((lowChars / textLength) * 100);
+                  const neutralPercentage = Math.round(((textLength - highChars - mediumChars - lowChars) / textLength) * 100);
+                  const annotatedPercentage = 100 - neutralPercentage;
 
-                  // Determine dominant annotation type
-                  let dominantColor = '#9CA3AF'; // gray-400 for neutral
-                  if (highChars > mediumChars && highChars > lowChars && highChars > neutralChars) {
-                    dominantColor = '#EF4444'; // red-500
-                  } else if (lowChars > highChars && lowChars > mediumChars && lowChars > neutralChars) {
-                    dominantColor = '#3B82F6'; // blue-500
-                  } else if (mediumChars > 0 || neutralChars > 0) {
-                    dominantColor = '#F59E0B'; // amber-500
+                  // Create gradient stops based on annotation percentages
+                  let gradientStops = [];
+                  let currentPosition = 0;
+
+                  // Always start with blue (low relevance area)
+                  if (lowPercentage > 0) {
+                    gradientStops.push(`#3B82F6 ${currentPosition}%`);
+                    currentPosition += lowPercentage;
+                    gradientStops.push(`#3B82F6 ${currentPosition}%`);
                   }
+
+                  // Add medium (yellow) if present
+                  if (mediumPercentage > 0) {
+                    if (lowPercentage > 0) {
+                      gradientStops.push(`#F59E0B ${currentPosition}%`);
+                    } else {
+                      gradientStops.push(`#F59E0B ${currentPosition}%`);
+                    }
+                    currentPosition += mediumPercentage;
+                    gradientStops.push(`#F59E0B ${currentPosition}%`);
+                  }
+
+                  // Add high (red) if present
+                  if (highPercentage > 0) {
+                    if (mediumPercentage > 0 || lowPercentage > 0) {
+                      gradientStops.push(`#EF4444 ${currentPosition}%`);
+                    } else {
+                      gradientStops.push(`#EF4444 ${currentPosition}%`);
+                    }
+                    currentPosition += highPercentage;
+                    gradientStops.push(`#EF4444 ${currentPosition}%`);
+                  }
+
+                  // Fill remaining with neutral (grey)
+                  if (neutralPercentage > 0) {
+                    if (annotatedPercentage > 0) {
+                      gradientStops.push(`#9CA3AF ${currentPosition}%`);
+                    } else {
+                      gradientStops.push(`#9CA3AF 0%`);
+                    }
+                    gradientStops.push(`#9CA3AF 100%`);
+                  }
+
+                  // Default to neutral if no annotations
+                  if (gradientStops.length === 0) {
+                    gradientStops = ['#9CA3AF 0%', '#9CA3AF 100%'];
+                  }
+
+                  const gradientString = `linear-gradient(90deg, ${gradientStops.join(', ')})`;
 
                   return (
                     <>
-                      {/* Background gradient based on coverage */}
-                      {annotations.length === 0 ? (
-                        <div 
-                          className="absolute inset-0"
-                          style={{
-                            background: 'linear-gradient(90deg, #9CA3AF 0%, #9CA3AF 100%)'
-                          }}
-                        ></div>
-                      ) : (
-                        <div 
-                          className="absolute inset-0"
-                          style={{
-                            background: `linear-gradient(90deg, 
-                              #3B82F6 0%, 
-                              #9CA3AF ${Math.max(0, neutralPercentage - 5)}%, 
-                              ${dominantColor} ${Math.min(100, neutralPercentage + 5)}%, 
-                              ${dominantColor} 100%)`
-                          }}
-                        ></div>
-                      )}
+                      <div 
+                        className="absolute inset-0"
+                        style={{
+                          background: gradientString
+                        }}
+                      ></div>
                       
-                      {/* Coverage percentage display */}
+                      {/* Percentage displays */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold drop-shadow-sm">
-                          {Math.round(annotatedPercentage)}% Annotated
-                        </span>
+                        <div className="flex gap-3 text-white text-xs font-bold drop-shadow-sm">
+                          {highPercentage > 0 && <span>🔥{highPercentage}%</span>}
+                          {mediumPercentage > 0 && <span>⚡{mediumPercentage}%</span>}
+                          {lowPercentage > 0 && <span>❄️{lowPercentage}%</span>}
+                          {neutralPercentage > 0 && <span>⚪{neutralPercentage}%</span>}
+                        </div>
                       </div>
                     </>
                   );
                 })()}
               </>
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-gray-400/30 to-red-500/30 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">No content to visualize</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-400 to-gray-400 flex items-center justify-center">
+                <span className="text-xs text-white font-bold drop-shadow-sm">100% Neutral</span>
               </div>
             )}
           </div>
           
-          {/* Simple gradient legend */}
+          {/* Enhanced gradient legend */}
           <div className="flex justify-between mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              Low Relevance
+              Low
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+              Medium
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+              Neutral
             </span>
             <span className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              High Relevance
+              High
             </span>
           </div>
         </div>
