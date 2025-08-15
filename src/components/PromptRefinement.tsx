@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Download, FileText } from 'lucide-react';
+import { Copy, Download, FileText, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Annotation } from './AnnotationInterface';
 
@@ -119,6 +119,16 @@ const PromptRefinement: React.FC<PromptRefinementProps> = ({
 
   return (
     <div className="space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
+          <Sparkles className="w-6 h-6" />
+          Prompt Refinement
+        </h2>
+        <p className="text-muted-foreground">
+          Generate improved prompts based on your {annotations.length} annotation{annotations.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
       {/* Analytics */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Target, BarChart3 } from 'lucide-react';
+import { Zap, Target, BarChart3, PenTool } from 'lucide-react';
 
 interface FlushHeaderProps {
-  activeTab: 'annotate' | 'refine' | 'analytics';
-  onTabChange: (tab: 'annotate' | 'refine' | 'analytics') => void;
+  activeTab: 'annotate' | 'analytics';
+  onTabChange: (tab: 'annotate' | 'analytics') => void;
   annotationCount: number;
 }
 
@@ -17,17 +17,10 @@ const FlushHeader: React.FC<FlushHeaderProps> = ({
   const tabs = [
     { 
       key: 'annotate', 
-      label: 'Annotate', 
-      icon: Target, 
-      description: 'Mark relevance levels',
+      label: 'Annotate & Refine', 
+      icon: PenTool, 
+      description: 'Mark relevance levels and refine prompts',
       disabled: false
-    },
-    { 
-      key: 'refine', 
-      label: 'Refine', 
-      icon: Zap, 
-      description: 'Generate improved prompts',
-      disabled: annotationCount === 0
     },
     { 
       key: 'analytics', 
