@@ -529,14 +529,56 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
                         }}
                       ></div>
                       
-                      {/* Percentage displays */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="flex gap-3 text-white text-xs font-bold drop-shadow-sm">
-                          {highPercentage > 0 && <span>🔥{highPercentage}%</span>}
-                          {mediumPercentage > 0 && <span>⚡{mediumPercentage}%</span>}
-                          {lowPercentage > 0 && <span>❄️{lowPercentage}%</span>}
-                          {neutralPercentage > 0 && <span>⚪{neutralPercentage}%</span>}
-                        </div>
+                      {/* Percentage displays positioned in their gradient areas */}
+                      <div className="absolute inset-0 flex items-center">
+                        {lowPercentage > 0 && (
+                          <div 
+                            className="flex items-center justify-center h-full text-white text-xs font-bold drop-shadow-sm"
+                            style={{ 
+                              width: `${lowPercentage}%`,
+                              position: 'absolute',
+                              left: '0%'
+                            }}
+                          >
+                            ❄️{lowPercentage}%
+                          </div>
+                        )}
+                        {mediumPercentage > 0 && (
+                          <div 
+                            className="flex items-center justify-center h-full text-white text-xs font-bold drop-shadow-sm"
+                            style={{ 
+                              width: `${mediumPercentage}%`,
+                              position: 'absolute',
+                              left: `${lowPercentage}%`
+                            }}
+                          >
+                            ⚡{mediumPercentage}%
+                          </div>
+                        )}
+                        {highPercentage > 0 && (
+                          <div 
+                            className="flex items-center justify-center h-full text-white text-xs font-bold drop-shadow-sm"
+                            style={{ 
+                              width: `${highPercentage}%`,
+                              position: 'absolute',
+                              left: `${lowPercentage + mediumPercentage}%`
+                            }}
+                          >
+                            🔥{highPercentage}%
+                          </div>
+                        )}
+                        {neutralPercentage > 0 && (
+                          <div 
+                            className="flex items-center justify-center h-full text-white text-xs font-bold drop-shadow-sm"
+                            style={{ 
+                              width: `${neutralPercentage}%`,
+                              position: 'absolute',
+                              left: `${lowPercentage + mediumPercentage + highPercentage}%`
+                            }}
+                          >
+                            ⚪{neutralPercentage}%
+                          </div>
+                        )}
                       </div>
                     </>
                   );
@@ -549,25 +591,6 @@ const AnnotationInterface: React.FC<AnnotationInterfaceProps> = ({
             )}
           </div>
           
-          {/* Enhanced gradient legend */}
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              Low
-            </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-              Medium
-            </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-              Neutral
-            </span>
-            <span className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              High
-            </span>
-          </div>
         </div>
 
         {/* Statistics */}
